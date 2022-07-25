@@ -46,42 +46,10 @@ FeaturePlot(NC, features = c("Hand2", "Tbx20"), coord.fixed = TRUE, ncol = 2)
 FeaturePlot(NC, features = c("Sox10", "Sox5", "Foxd3", "Ebf1", "Pax3", "Tfap2a","Tfap2b",
                              "Myc", "Sox9", "Snai1", "Snai2", "Myb"), coord.fixed = TRUE, ncol = 4)
 
-# Add annotations 
-NC <- RenameIdents(NC,
-                   `0` = "PA2",
-                   `1` = "PA2",
-                   `2` = "PA4_6",
-                   `3` = "PA2",
-                   `4` = "NC_derivatives",
-                   `5` = "PA2",
-                   `6` = "PA3",
-                   `7` = "PA4_6",
-                   `8` = "SMC_progenitor",
-                   `9` = "SMC",
-                   `10` = "PA2",
-                   `11` = "PA2",
-                   `12` = "SMC_progenitor",
-                   `13` = "SMC_progenitor",
-                   `14` = "PA2",
-                   `15` = "PA2",
-                   `16` = "PA2",
-                   `17` = "SMC_progenitor",
-                   `18` = "PA4_6",
-                   `19` = "SMC_progenitor",
-                   `20` = "PA2",
-                   `21` = "SMC_progenitor",
-                   `22` = "PA2",
-                   `23` = "PA2",
-                   `24` = "Aldh1a2+",
-                   `25` = "NC_derivatives",
-                   `26` = "SMC_progenitor")
-
-NC@active.ident <- factor(NC@active.ident,
-                          levels=c("PA2","PA3","PA4_6","NC_derivatives","SMC_progenitor", "SMC", "Aldh1a2+"))
 DimPlot(NC, label = TRUE) + NoLegend()
 
 ### Save Seurat object RDS
-saveRDS(NC, "../data/rds/NC_labeled_07-17-2021.RDS")
+saveRDS(NC, "../data/rds/NC_07-17-2021.RDS")
 
 ### Find marker genes and plot HeatMaps
 allmarkers <- FindAllMarkers(NC, logfc.threshold = 0.3, only.pos = TRUE, min.pct = 0.3, return.thresh = 1e-6)

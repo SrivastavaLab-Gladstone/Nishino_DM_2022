@@ -52,47 +52,11 @@ allmarkers_1 <- FindAllMarkers(Meso, logfc.threshold = 0.5, only.pos = TRUE, min
 Idents(Meso) <- "SCT_snn_res.1.4"
 allmarkers_2 <- FindAllMarkers(Meso, logfc.threshold = 0.5, only.pos = TRUE, min.pct = 0.5, return.thresh = 1e-20)
 
-### Give annotation
-Idents(Meso) <- "SCT_snn_res.1.4"
-Meso <- RenameIdents(Meso,
-                     `0` = "*AHF2",
-                     `1` = "EpiC",
-                     `2` = "CM_V",
-                     `3` = "AHF1",
-                     `4` = "ParaxialMeso1",
-                     `5` = "*AHF2",
-                     `6` = "pSHF", 
-                     `7` = "AHF1",
-                     `8` = "ParaxialMeso1",
-                     `9` = "pSHF", 
-                     `10` = "CM_OFT",
-                     `11` = "*ParaxialMeso2",
-                     `12` = "PharyngealMeso",
-                     `13` = "pSHF",
-                     `14` = "CM_SV",
-                     `15` = "*ImmatureCM", 
-                     `16` = "*AHF2",
-                     `17` = "pSHF",
-                     `18` = "PharyngealMeso",
-                     `19` = "*ParaxialMeso2",
-                     `20` = "*AVC_EndoMT",
-                     `21` = "CM_AVC",
-                     `22` = "CM_A",
-                     `23` = "BrM",
-                     `24` = "AHF1",
-                     `25` = "*ImmatureCM", 
-                     `26` = "*ImmatureCM", 
-                     `27` = "CM_A")
-Meso@active.ident <- factor(Meso@active.ident,
-                            levels=c("CM_V","CM_AVC","CM_A","CM_SV","CM_OFT","*ImmatureCM",
-                                     "*AVC_EndoMT","EpiC","AHF1","*AHF2","pSHF","PharyngealMeso",
-                                     "ParaxialMeso1","*ParaxialMeso2","BrM"))
-
 ### Plot UMAP
 DimPlot(Meso, label = TRUE) + NoLegend()
 ### Extract maker genes and plot a heatmap
 allmarkers <- FindAllMarkers(Meso, logfc.threshold = 0.3, only.pos = TRUE, min.pct = 0.3, return.thresh = 1e-6)
-write.csv(allmarkers, file = "../results/cluster_markers/Meso_LABELED_07-02-2021.csv")
+write.csv(allmarkers, file = "../results/cluster_markers/Meso_07-02-2021.csv")
 top5 <- allmarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_log2FC)
 maxcells  <- min(table(Idents(Meso)))
 DoHeatmap(subset(Meso, downsample = maxcells), features = top5$gene, size = 4)+ 
