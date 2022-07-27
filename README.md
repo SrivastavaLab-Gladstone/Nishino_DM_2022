@@ -1,8 +1,8 @@
 ## Introduction
 
-This is the code used by Dr. Tomohiro Nishino and Mr. Angelo Pelonero in the Srivastava Lab for the submission "Single Cell Multimodal Analyses Reveal Epigenomic and Transcriptomic Basis for Birth Defects in Maternal Diabetes" to [awaiting journal decision].
+This is the code used by Dr. Tomohiro Nishino and Mr. Angelo Pelonero in the Srivastava Lab for the submission "Single Cell Multimodal Analyses Reveal Epigenomic and Transcriptomic Basis for Birth Defects in Maternal Diabetes."
 
-Todo: add link to https://www.biorxiv.org + additional info as needed
+Manuscript is currently available on bioRxiv: [DOI 2022.07.25.501463](https://doi.org/10.1101/2022.07.25.501463)
 
 ## Analysis
 All data was processed and analyzed using Cellranger, Seurat, ArchR and supporting packages as detailed in provided scripts. See 10x Genomics documenation for [Cellranger](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/what-is-cell-ranger) and [Cellranger ATAC](https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/what-is-cell-ranger-atac) usage.
@@ -11,7 +11,7 @@ Analysis order:
 
 1. Process scRNA/scATAC 10x Genomics Cellranger v5.0.0 & Cellranger-atac v2.0.0 pipelines:
    - `cellranger count` & `cellranger-atac count`
-   - `cellranger aggr` & `cellranger-atac aggr`
+   - `cellranger aggr`
 2. Analyze scRNA seq data with Seurat v4.0.2 using scripts 1-5 in `scRNA-seq/*/` folder:
     - `scRNA-seq/scRNA_Script01.R`: scRNA data read-in and processing
     - `scRNA-seq/scRNA_Script02.R`: scRNA data QC filtering and clustering
