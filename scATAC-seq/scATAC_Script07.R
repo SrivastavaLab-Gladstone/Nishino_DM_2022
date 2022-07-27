@@ -1,12 +1,11 @@
-#### Script07
-
-### Filtering the candidate enhancers from detected DARs in AHF2(C15)
+### Script07: Filtering the candidate enhancers from detected DARs in AHF2(C15)
 ## The aim of this script is to identify the candidate enhancers with deferential accessibility between conditions and with an association with DEGs in the same cluster. 
 ## Strategy 1. Extract the peak2GeneLinks list which includes peak locations and associated genes for each of peaks 
 ##          2. Extract the DAR list and merge it with the peak2GeneLinks list using peak/DAR location data 
 ##          3. Take a DEG list 
 ##          4. Merge the DEG list with the DAR-peak2GeneLinks list.
 
+### Load libraries and data ####
 E105_DM_Harmony2 <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Harmony2")
 E105_DM_Harmony2 <- addPeak2GeneLinks(ArchRProj = E105_DM_Harmony2, reducedDims = "Harmony")
 
@@ -18,7 +17,9 @@ markerTest_15 <- getMarkerFeatures(ArchRProj = E105_DM_Harmony2, useMatrix = "Pe
                                    testMethod = "wilcoxon",bias = c("TSSEnrichment", "log10(nFrags)"),
                                    useGroups = paste0("C15_STZ"), bgdGroups = paste0("C15_Veh"))
 
-# More accessible DARs 
+
+### Analyze DARs ####
+## More accessible DARs 
 markerList_C15_Open <- getMarkers(markerTest_15, cutOff = "FDR <= 0.05 & Log2FC >= 1")
 markerList_C15_Open_DF <-  markerList_C15_Open$C15_STZ
 markerList_C15_Open_DF$peakName <- paste0(markerList_C15_Open_DF$seqnames, "_", markerList_C15_Open_DF$start, "_", markerList_C15_Open_DF$end)
@@ -26,14 +27,14 @@ markerList_C15_Open_DF_2 <- as.data.frame(markerList_C15_Open_DF)
 p2geneDF_2 <- as.data.frame(p2geneDF)
 DAR_Open_P2g_integrated <- inner_join(markerList_C15_Open_DF_2, p2geneDF_2, by="peakName")
 
-# Less accessible DARs 
+## Less accessible DARs 
 markerList_C15_Close <- getMarkers(markerTest_15, cutOff = "FDR <= 0.05 & Log2FC <= -1")
 markerList_C15_Close_DF <-  markerList_C15_Close$C15_STZ
 markerList_C15_Close_DF$peakName <- paste0(markerList_C15_Close_DF$seqnames, "_", markerList_C15_Close_DF$start, "_", markerList_C15_Close_DF$end)
 markerList_C15_Close_DF_2 <- as.data.frame(markerList_C15_Close_DF)
 DAR_Close_P2g_integrated <- inner_join(markerList_C15_Close_DF_2, p2geneDF_2, by="peakName")
 
-# Load the DEG lists from AHF2 cluster
+## Load the DEG lists from AHF2 cluster
 AHF2_DEG <- read.csv(file = "./DEGlists/*AHF2_DE_STZ_vs_Vehicle.csv")
 AHF2_DEG_UP <- filter(AHF2_DEG, p_val_adj <= 0.05 & avg_log2FC > 0)
 AHF2_DEG_DOWN <- filter(AHF2_DEG, p_val_adj <= 0.05 & avg_log2FC < 0)
@@ -60,8 +61,7 @@ write.csv(DEGUP_DAR_Close_P2g_integrated, "DEGUP_DAR_Close_P2g_integrated.csv")
 ### used the same framework for DAR-DEG analyses in PA2NC (C19).
 
 
-## Session Information
-sessionInfo()
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Catalina 10.15.7

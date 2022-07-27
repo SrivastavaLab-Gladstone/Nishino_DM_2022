@@ -1,14 +1,11 @@
-### Script02_QC checks, filtering, normalization and integration
-
-### load library and set seed
+### Script02: QC checks, filtering, and normalization
+### Load libraries and data ####
 library(Seurat)
 library(ggplot2)
 library(gridExtra)
 library(stringr)
 library(dplyr)
 set.seed(7)
-
-### load Seurat object from Script01
 E105 <- readRDS(file = "../data/rds/01_rawObject_noFilters_scoresAdded_06-28-2021.RDS")
 
 ### Set QC cutoffs
@@ -17,39 +14,35 @@ ribo_cutoffs <- c(10, 30)
 nFeat_cutoffs <- c(4000, 9500)
 nCount_cutoffs <- c(10000, 100000)
 
+### Subset out low QC cells and cluster ####
 E105  <- subset(E105, subset = percent.mt > min(mito_cutoffs) & percent.mt < max(mito_cutoffs) &
                   percent.ribo > min(ribo_cutoffs) & percent.ribo <  max(ribo_cutoffs) &
                   nFeature_RNA > min(nFeat_cutoffs) & nFeature_RNA <  max(nFeat_cutoffs) &
                   nCount_RNA > min(nCount_cutoffs) & nCount_RNA < max(nCount_cutoffs))
 
-### Run SCTransform 
 E105 <- SCTransform(E105, assay = "RNA", new.assay.name = "SCT", variable.features.n = 3000, 
                     variable.features.rv.th = 1.3, vars.to.regress = c("percent.mt","percent.ribo"), 
                     return.only.var.genes = TRUE)
-### Run PCA
 E105 <- RunPCA(E105, verbose = FALSE, npcs = 100)
-### Run Harmony
 E105 <- harmony::RunHarmony(E105, group.by.vars = "gem.group", assay.use="SCT")
-### Elbowplot, just to check
-ElbowPlot(E105, ndims = 50)
+# ElbowPlot(E105, ndims = 50)
 dims <- 1:32 
 E105 <- RunUMAP(E105, reduction = "harmony", dims = dims) 
 E105 <- FindNeighbors(E105, reduction = "harmony", dims = dims)
 E105 <- FindClusters(E105, resolution = 0.6)
-
 ### Plot UMAPs
 DimPlot(E105, label = TRUE)
 DimPlot(E105, split.by = "gem.group")
-
 ### Plot QC parameters per cluster
 VlnPlot(E105, features = "nFeature_RNA")
 VlnPlot(E105, features = "nCount_RNA")
 VlnPlot(E105, features = "percent.mt")
 
-### Check maker genes per cluster
-allmarkers <- FindAllMarkers(E105, logfc.threshold = 0.4, only.pos = TRUE, min.pct = 0.45, return.thresh = 1e-10)
 
-### Add annotations based on the maker genes above
+### Find marker genes and annotate celltypes #### 
+## Find cluster markers
+allmarkers <- FindAllMarkers(E105, logfc.threshold = 0.4, only.pos = TRUE, min.pct = 0.45, return.thresh = 1e-10)
+## Add annotations based on the maker genes above
 E105 <- RenameIdents(E105,
                      `0` = "NeuralCrest",
                      `1` = "NeuralCrest",
@@ -84,21 +77,21 @@ E105@active.ident <- factor(E105@active.ident,
                             levels=c("Cardiomyocyte","Meso/CardiopharyngealProgenitor","Epicardium","NeuralCrest","Endothelium","Endoderm",
                                      "Blood"))
 
-### save RDS
+## save RDS
 saveRDS(E105, "../data/rds/02_entire_broad-labeled_08-04-2021.RDS")
-
-### Get maker genes and plot a HeatMap of top5 genes for each cluster 
+## recalculate marker genes if desired & plot heatmap of top N marker genes per cluster
 allmarkers <- FindAllMarkers(E105, logfc.threshold = 0.5, only.pos = TRUE, min.pct = 0.5, return.thresh = 1e-20)
 top5 <- allmarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_log2FC)
-### captures count of cells for the ident with the fewest
+## capture lowest cluster cell count to subset heatmap groups
 maxcells  <- min(table(Idents(E105)))
+## plot
 DoHeatmap(subset(E105, downsample = maxcells), features = top5$gene, size = 6, raster = F) + 
   scale_fill_gradientn(colors = rev(RColorBrewer::brewer.pal(n = 10, name = "RdBu")) ) + 
   guides(color=FALSE) + 
   theme(axis.text.y = element_text(size = 16))
 
 
-
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Big Sur 11.6.6

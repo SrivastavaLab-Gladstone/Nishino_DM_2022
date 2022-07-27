@@ -1,16 +1,14 @@
-### Script05; DARs between different clusters
-
-### load library
+### Script05: DARs between different clusters
+### Load libraries and data ####
 library(ArchR)
 library(dplyr)
 library(SeuratWrappers)
 addArchRThreads(threads = 24) 
 set.seed(1)
-
-# Re-load ArchR project!
 E105_DM_Harmony <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Harmony")
 
-### Identification of DARs between C10 vs C15 and C14 vs C15
+
+### Identification of DARs between C10 vs C15 and C14 vs C15 ####
 ## peak calls using "Cluster" 
 E105_DM_Harmony <- addGroupCoverages(ArchRProj = E105_DM_Harmony, groupBy = "Clusters", minCells = 40, maxCells = 500, force = T)
 E105_DM_Harmony <- addReproduciblePeakSet(ArchRProj = E105_DM_Harmony, groupBy = "Clusters", pathToMacs2 = "/usr/local/bin/macs2",
@@ -32,7 +30,7 @@ ComplexHeatmap::draw(heatmapPeaks, heatmap_legend_side = "bot", annotation_legen
 ComplexHeatmap::draw(heatmapPeaks[,1:20000], heatmap_legend_side = "bot", annotation_legend_side = "bot")
 ComplexHeatmap::draw(heatmapPeaks[,20001:40000], heatmap_legend_side = "bot", annotation_legend_side = "bot")
 
-## DAR beteen C15 vs C10
+### DAR beteen C15 vs C10 ####
 markerTest_C15vsC10 <- getMarkerFeatures(ArchRProj = E105_DM_Harmony2,useMatrix = "PeakMatrix",groupBy = "Clusters",
   testMethod = "wilcoxon",bias = c("TSSEnrichment", "log10(nFrags)"),useGroups = "C15",bgdGroups = "C10")
 pma <- plotMarkers(seMarker = markerTest_C15vsC10, name = "C15", cutOff = "FDR <= 0.05 & abs(Log2FC) >= 1", plotAs = "MA")
@@ -42,7 +40,7 @@ ggAlignPlots(pma, pv, type = "h")
 DAR_C15vsC10_UP <- getMarkers(markerTest_C15vsC10, cutOff = "FDR <= 0.01 & Log2FC >= 1", returnGR = TRUE)
 DAR_C15vsC10_UP <- DAR_C15vsC10_UP$C15
 gr <- DAR_C15vsC10_UP
-# Store DARs in BED file format
+## store DARs in BED file format
 df <- data.frame(seqnames=seqnames(gr),
                  starts=start(gr)-1,
                  ends=end(gr),
@@ -50,7 +48,7 @@ df <- data.frame(seqnames=seqnames(gr),
                  scores=c(rep("", length(gr))),
                  strands=strand(gr))
 write.table(df, file="/path/to/ArchrOutputDir/E105_DM_Harmony/DAR_clusters/DAR_C15vsC10_UP.bed", quote=F, sep="\t", row.names=F, col.names=F)
-# Store DARs in another BED file format which is ready to be fed for GREAT analyses 
+# store DARs in another BED file format for GREAT analysis
 df <- data.frame(seqnames=seqnames(gr),
                  starts=start(gr)-1,
                  ends=end(gr),
@@ -61,7 +59,7 @@ write.table(df, file="/path/to/ArchrOutputDir/E105_DM_Harmony/DAR_clusters/DAR_C
 DAR_C15vsC10_DOWN <- getMarkers(markerTest_C15vsC10, cutOff = "FDR <= 0.01 & Log2FC <= -1", returnGR = TRUE)
 DAR_C15vsC10_DOWN <- DAR_C15vsC10_DOWN$C15
 gr <- DAR_C15vsC14_DOWN
-# Store DARs in BED file format
+## store DARs in BED file format
 df <- data.frame(seqnames=seqnames(gr),
                  starts=start(gr)-1,
                  ends=end(gr),
@@ -69,14 +67,15 @@ df <- data.frame(seqnames=seqnames(gr),
                  scores=c(rep("", length(gr))),
                  strands=strand(gr))
 write.table(df, file="/path/to/ArchrOutputDir/E105_DM_Harmony/DAR_clusters/DAR_C15vsC10_DOWN.bed", quote=F, sep="\t", row.names=F, col.names=F)
-# Store DARs in another BED file format which is ready to be fed for GREAT analyses 
+## store DARs in another BED file format which is ready to be fed for GREAT analyses 
 df <- data.frame(seqnames=seqnames(gr),
                  starts=start(gr)-1,
                  ends=end(gr),
                  names=1:length(gr))
 write.table(df, file="/path/to/ArchrOutputDir/E105_DM_Harmony/DAR_clusters/DAR_C15vsC10_DOWN_GREAT.bed", quote=F, sep="\t", row.names=F, col.names=F)
 
-## DAR beteen C15 vs C14
+
+### DAR beteen C15 vs C14 ####
 markerTest_C15vsC14 <- getMarkerFeatures(ArchRProj = E105_DM_Harmony2,useMatrix = "PeakMatrix",groupBy = "Clusters",
                                          testMethod = "wilcoxon",bias = c("TSSEnrichment", "log10(nFrags)"),useGroups = "C15",bgdGroups = "C14")
 pma <- plotMarkers(seMarker = markerTest_C15vsC14, name = "C15", cutOff = "FDR <= 0.05 & abs(Log2FC) >= 1", plotAs = "MA")
@@ -86,7 +85,7 @@ ggAlignPlots(pma, pv, type = "h")
 DAR_C15vsC14_UP <- getMarkers(markerTest_C15vsC14, cutOff = "FDR <= 0.01 & Log2FC >= 1", returnGR = TRUE)
 DAR_C15vsC14_UP <- DAR_C15vsC14_UP$C15
 gr <- DAR_C15vsC14_UP
-# Store DARs in BED file format
+## store DARs in BED file format
 df <- data.frame(seqnames=seqnames(gr),
                  starts=start(gr)-1,
                  ends=end(gr),
@@ -94,7 +93,7 @@ df <- data.frame(seqnames=seqnames(gr),
                  scores=c(rep("", length(gr))),
                  strands=strand(gr))
 write.table(df, file="/path/to/ArchrOutputDir/E105_DM_Harmony/DAR_clusters/DAR_C15vsC14_UP.bed", quote=F, sep="\t", row.names=F, col.names=F)
-# Store DARs in another BED file format which is ready to be fed for GREAT analyses 
+## store DARs in another BED file format which is ready to be fed for GREAT analyses 
 df <- data.frame(seqnames=seqnames(gr),
                  starts=start(gr)-1,
                  ends=end(gr),
@@ -113,17 +112,18 @@ df <- data.frame(seqnames=seqnames(gr),
                  scores=c(rep("", length(gr))),
                  strands=strand(gr))
 write.table(df, file="/path/to/ArchrOutputDir/E105_DM_Harmony/DAR_clusters/DAR_C15vsC14_DOWN.bed", quote=F, sep="\t", row.names=F, col.names=F)
-# Store DARs in another BED file format which is ready to be fed for GREAT analyses 
+## store DARs in another BED file format which is ready to be fed for GREAT analyses 
 df <- data.frame(seqnames=seqnames(gr),
                  starts=start(gr)-1,
                  ends=end(gr),
                  names=1:length(gr))
 write.table(df, file="/path/to/ArchrOutputDir/E105_DM_Harmony/DAR_clusters/DAR_C15vsC14_DOWN_GREAT.bed", quote=F, sep="\t", row.names=F, col.names=F)
 
-# How to extract GeneScoreMatrix
+## extract gene score matrix
 GeneScoreMatrix <-  getMatrixFromProject(E105_DM_Harmony2, "GeneScoreMatrix")
 
-## DAR beteen C19 vs C18
+
+### DAR beteen C19 vs C18 ####
 markerTest_C19vsC18 <- getMarkerFeatures(ArchRProj = E105_DM_Harmony2,useMatrix = "PeakMatrix",groupBy = "Clusters",
                                          testMethod = "wilcoxon",bias = c("TSSEnrichment", "log10(nFrags)"),useGroups = "C19",bgdGroups = "C18")
 pma <- plotMarkers(seMarker = markerTest_C19vsC18, name = "C19", cutOff = "FDR <= 0.05 & abs(Log2FC) >= 1", plotAs = "MA")
@@ -164,7 +164,8 @@ df <- data.frame(seqnames=seqnames(gr),
                  names=1:length(gr))
 write.table(df, file="/path/to/ArchrOutputDir/E105_DM_Harmony/DAR_clusters/DAR_C19vsC18_DOWN_GREAT.bed", quote=F, sep="\t", row.names=F, col.names=F)
 
-## DAR beteen C20 vs C19
+
+### DAR beteen C20 vs C19 ####
 markerTest_C20vsC19 <- getMarkerFeatures(ArchRProj = E105_DM_Harmony2,useMatrix = "PeakMatrix",groupBy = "Clusters",
                                          testMethod = "wilcoxon",bias = c("TSSEnrichment", "log10(nFrags)"),useGroups = "C20",bgdGroups = "C19")
 pma <- plotMarkers(seMarker = markerTest_C20vsC19, name = "C20", cutOff = "FDR <= 0.05 & abs(Log2FC) >= 1", plotAs = "MA")
@@ -204,8 +205,7 @@ df <- data.frame(seqnames=seqnames(gr),
 write.table(df, file="/path/to/ArchrOutputDir/E105_DM_Harmony/DAR_clusters/DAR_C20vsC19_DOWN_GREAT.bed", quote=F, sep="\t", row.names=F, col.names=F)
 
 
-## Session Information
-sessionInfo()
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Catalina 10.15.7

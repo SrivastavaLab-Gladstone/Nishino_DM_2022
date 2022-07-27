@@ -1,22 +1,20 @@
 #### Script04; Subset analyses
-
-## Load libraries
+### Load libraries and data ####
 library(ArchR)
 library(dplyr)
 library(Seurat)
 library(SeuratWrappers)
+library(tidyr)
+library(RColorBrewer)
 addArchRThreads(threads = 28) 
 set.seed(1)
-
-## Re-load ArchR project!
 E105_DM_Harmony_trial　<- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Harmony_trial_Latest")
 
-### Subset Meso+CM scATAC-seq data and merge it with Meso+CM subset scRNA-seq data 
+### Subset Meso+CM scATAC-seq data and merge it with Meso+CM subset scRNA-seq data ####
 ## Subset Meso+CM scATAC-seq data
 idxSample <- BiocGenerics::which(E105_DM_Harmony_trial$Clusters %in% c("C10", "C11", "C12", "C13", "C14", "C15", "C16", "C24", "C25"))
 cellsSample <- E105_DM_Harmony_trial$cellNames[idxSample]
 Meso <- E105_DM_Harmony_trial[cellsSample, ]
-
 ## Preprocess Meso+CM scRNA-seq subset data
 scRNA <- readRDS("./scRNA_data/04_labeled_Meso_Subset_07-02-2021.RDS")
 scRNA <- FindVariableFeatures(scRNA, assay = "SCT", nfeatures = 4000) 
@@ -25,7 +23,6 @@ table(scRNA@active.ident)
 seRNA <- as.SingleCellExperiment(scRNA, assay = "SCT")
 colnames(colData(seRNA))
 table(colData(seRNA)$clusters)
-
 ## Integration (Unconstrained, w/o imputation) 
 Meso <- addGeneIntegrationMatrix(
   ArchRProj = Meso, 
@@ -75,11 +72,10 @@ p1 <- plotEmbedding(
   pal = pal)
 p1
 plotPDF(p1, name = "Plot-UMAP-RNA-Harmony_Meso-Integration_imputation-F.pdf", ArchRProj = Meso, addDOC = FALSE, width = 5, height = 5)
-# Save
+## save
 saveArchRProject(ArchRProj = Meso, outputDirectory = "/path/to/ArchrOutputDir/Meso", load = TRUE)
-Meso 
-
-## My manual labeling --> make sure this is a separate metadata column from existing clusters
+# Meso 
+## manual labeling --> make sure this is a separate metadata column from existing clusters
 temp_cluster_names <- as.character(revalue(Meso$Clusters, c(
   "C10"="AHF1",          
   "C4"="Non_Meso",            
@@ -119,7 +115,8 @@ plotPDF(p1,
         ArchRProj = Meso,
         addDOC = FALSE, width = , height = 5)
 
-## Calculate jaccard index score; subset Meso+CM from scATAC-entire data and integrated scRNA-seq Meso+CM data
+
+### calculate jaccard index score; subset Meso+CM from scATAC-entire data and integrated scRNA-seq Meso+CM data ####
 Meso_ji <- Reduce(bind_rows,lapply(unique(Meso$Clusters), function(TN_label) {
   df <- Reduce(bind_rows,lapply(unique(Meso$predictedGroup_Meso), function(CCA_label) {
     ji <- sum(Meso$Clusters == TN_label & Meso$predictedGroup_Meso == CCA_label)/sum(Meso$Clusters == TN_label | Meso$predictedGroup_Meso ==CCA_label)
@@ -141,17 +138,7 @@ j <- apply(Meso_ji_mat, 2, max) >= 0.15
 pheatmap::pheatmap(Meso_ji_mat[i,j], clustering_method = "ward.D2", color = colorRampPalette((brewer.pal(n = 9, name ="Reds")))(100), display_numbers = T, number_color = "White")
 
 
-### NC compartment analysis 
-## Load libraries
-library(ArchR)
-library(dplyr)
-library(Seurat)
-library(SeuratWrappers)
-library(tidyr)
-library(RColorBrewer)
-addArchRThreads(threads = 28) 
-set.seed(1)
-
+### NC compartment analysis ####
 ## Re-load ArchR project!
 E105_DM_Harmony_trial　<- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Harmony_trial_Latest")
 
@@ -197,7 +184,7 @@ plotPDF(p1, name = "Plot-UMAP-RNA-Harmony_NC-Integration_imputation-F.pdf", Arch
 saveArchRProject(ArchRProj = NC, outputDirectory = "/path/to/ArchrOutputDir/NC", load = TRUE)
 NC 
 
-## Calculate jaccard index score; subset NC from scATAC-entire data and integrated scRNA-seq NC data
+### calculate jaccard index score; subset NC from scATAC-entire data and integrated scRNA-seq NC data ####
 NC_ji <- Reduce(bind_rows,lapply(unique(NC$Clusters), function(TN_label) {
   df <- Reduce(bind_rows,lapply(unique(NC$predictedGroup_NC), function(CCA_label) {
     ji <- sum(NC$Clusters == TN_label & NC$predictedGroup_NC == CCA_label)/sum(NC$Clusters == TN_label | NC$predictedGroup_NC ==CCA_label)
@@ -231,8 +218,7 @@ saveArchRProject(ArchRProj = NC, outputDirectory = "/path/to/ArchrOutputDir/NC",
 NC 
 
 
-## Session Information
-sessionInfo()
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Catalina 10.15.7

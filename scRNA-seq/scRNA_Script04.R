@@ -1,39 +1,31 @@
-### Script04_NC subset analyses
-
-### Load libraries and set seed
+### Script04: NC subset analyses
+### Load libraries and data ####
 library(Seurat)
 library(ggplot2)
 library(gridExtra)
 library(stringr)
 library(dplyr)
 set.seed(7)
-
-### Load entire dataset
 E105 <- readRDS(file ="../data/rds/02_entire_broad-labeled_6-28-2021.RDS")
 
-### Subset dataset to keep only neural crest cells (NC)
+### Subset to neural crest (NC) cells & cluster ####
 clusters2keep <- c(0,1,16,21,22)
 NC <- subset(E105, idents = clusters2keep)
-
-### Rerun SCTransform to renormalize data
 NC <- SCTransform(NC, assay = "RNA", new.assay.name = "SCT", variable.features.n = 3000, variable.features.rv.th = 1.3, 
                   vars.to.regress = c("percent.mt", "S.Score", "G2M.Score"), return.only.var.genes = TRUE)
-### Run PCA if desired
 NC <- RunPCA(NC, verbose = FALSE, npcs = 100)
-### RUn Harmony
 NC <- harmony::RunHarmony(NC, group.by.vars = "gem.group", assay.use="SCT")
-### Check elbowplot
-ElbowPlot(NC, ndims = 50)
+# ElbowPlot(NC, ndims = 50)
 dims <- 1:34
 NC <- RunUMAP(NC, reduction = "harmony", dims = dims)
 NC <- FindNeighbors(NC, reduction = "harmony", dims = dims)
 NC <- FindClusters(NC, resolution = c(2.0), random.seed = 7)
 
-### Plot UMAPs 
+
+### Evaluate clustering and observe NC compartments ####
 DimPlot(NC, reduction = "umap", label = TRUE)
 DimPlot(NC, reduction = "umap", split.by = "condition", label = TRUE)
-
-# FeaturePlot for genes related to Hox/Dlx codes etc.
+## FeaturePlot for genes related to Hox/Dlx codes etc.
 FeaturePlot(NC, features = c("Hoxa2", "Hoxb2"), coord.fixed = TRUE, ncol = 2)
 FeaturePlot(NC, features = c("Hoxa3", "Hoxb3", "Hoxd3"), coord.fixed = TRUE, ncol = 2) 
 FeaturePlot(NC, features = c("Hoxa4", "Hoxb4","Hoxc4", "Hoxd4"), coord.fixed = TRUE, ncol = 2) 
@@ -45,19 +37,18 @@ FeaturePlot(NC, features = c("Sox10"), coord.fixed = TRUE, ncol = 2)
 FeaturePlot(NC, features = c("Hand2", "Tbx20"), coord.fixed = TRUE, ncol = 2) 
 FeaturePlot(NC, features = c("Sox10", "Sox5", "Foxd3", "Ebf1", "Pax3", "Tfap2a","Tfap2b",
                              "Myc", "Sox9", "Snai1", "Snai2", "Myb"), coord.fixed = TRUE, ncol = 4)
-
 DimPlot(NC, label = TRUE) + NoLegend()
-
-### Save Seurat object RDS
+## Save RDS
 saveRDS(NC, "../data/rds/NC_07-17-2021.RDS")
 
-### Find marker genes and plot HeatMaps
+
+### Find marker genes for cell type annotation & plot heatmaps ####
 allmarkers <- FindAllMarkers(NC, logfc.threshold = 0.3, only.pos = TRUE, min.pct = 0.3, return.thresh = 1e-6)
 top5 <- allmarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_log2FC)
 maxcells  <- min(table(Idents(NC)))
 DoHeatmap(subset(NC, downsample = maxcells), features = top5$gene, size = 4)+ 
   theme(axis.text.y = element_text(size = 12))
-### HeatMap and DotPlot of Hox genes
+## HeatMap and DotPlot of Hox genes
 HoxGenes <- c("Hoxa2", "Hoxb2","Hoxa3", "Hoxb3", "Hoxd3","Hoxa4", "Hoxb4","Hoxc4", "Hoxd4","Hoxb5","Sox10","Phox2b","Mitf","Rgs5","Hand1","Pdgfc","Tagln", "Tbx20","Tbx1", "Aldh1a2" )
 maxcells  <- min(table(Idents(NC)))
 DoHeatmap(subset(NC, downsample = maxcells), features = HoxGenes, size = 6, raster = F) + 
@@ -66,7 +57,8 @@ DoHeatmap(subset(NC, downsample = maxcells), features = HoxGenes, size = 6, rast
   theme(axis.text.y = element_text(size = 16))
 DotPlot(NC, features = HoxGenes, cols = c("#0068b7","#f39800")) + RotatedAxis()
 
-### Differential gene expression analyses
+
+### DEG analysis between conditions, per cluster ####
 identlist <- levels(Idents(NC))
 print(identlist)
 numvec <- as.vector(1:length(identlist))
@@ -84,9 +76,7 @@ for(i in numvec) {
 }
 
 
-
-
-
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Big Sur 11.6.6

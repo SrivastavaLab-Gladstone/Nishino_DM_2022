@@ -1,17 +1,14 @@
-#### Script02_Identification of DARs with Motif enrichment analyses
-
-# load libraries and set seed
+#### Script02: Identification of DARs with Motif enrichment analyses
+### Load libraries and data ####
 library(ArchR)
 library(dplyr)
 library(SeuratWrappers)
 addArchRThreads(threads = 24) 
 set.seed(1)
-
-# Re-load ArchR project!
 E105_DM_Harmony <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Harmony")
 
-### Step1; Peak call per cluster+condition(Veh or STZ)
-# Add labels of "clusters + condition" information and store them in "Clusters_Cd"
+### Peak calls per cluster+condition(Veh or STZ) ####
+## add labels of "clusters + condition" information and store them in "Clusters_Cd"
 temp_cluster_names <- paste0(E105_DM_Harmony$Clusters,"_",substr(E105_DM_Harmony$Sample, 1,3))
 length(unique(temp_cluster_names))
 E105_DM_Harmony$Clusters_Cd <- temp_cluster_names
@@ -19,7 +16,8 @@ E105_DM_Harmony@cellColData@listData[["Clusters_Cd"]] <- temp_cluster_names
 table(E105_DM_Harmony$Clusters,E105_DM_Harmony$Sample)
 table(E105_DM_Harmony$Clusters_Cd,E105_DM_Harmony$Sample)
 
-### peak calls using "Clusters_Cd" and get maker peaks
+
+### peak calls using "Clusters_Cd" and get maker peaks ####
 E105_DM_Harmony <- addGroupCoverages(ArchRProj = E105_DM_Harmony, groupBy = "Clusters_Cd", minCells = 40, maxCells = 500, force = T)
 E105_DM_Harmony <- addReproduciblePeakSet(ArchRProj = E105_DM_Harmony, groupBy = "Clusters_Cd", pathToMacs2 = "/usr/local/bin/macs2",
                                           peaksPerCell = 500, maxPeaks = 150000, minCells = 25, force = T)
@@ -34,7 +32,7 @@ E105_DM_Harmony2 <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Har
 markersPeaks <- getMarkerFeatures(ArchRProj = E105_DM_Harmony2, useMatrix = "PeakMatrix", groupBy = "Clusters_Cd",
                                   bias = c("TSSEnrichment", "log10(nFrags)"), testMethod = "wilcoxon")
 markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.01 & Log2FC >= 1", returnGR = TRUE)
-# record maker peaks
+## record maker peaks
 numv <- length(markerList@listData)
 for (i in c(1:2,5:17, 19:40, 42:numv)) {
   foundmarkers <- markerList@listData[i]
@@ -54,10 +52,9 @@ for (i in c(1:2,5:17, 19:40, 42:numv)) {
   write.table(df, file=paste0("/path/to/ArchrOutputDir/E105_DM_Harmony/MarkerPeaks/per_ClusterCon/MarkerPeak_",names(markerList@listData)[i],"_GREAT.bed"), quote=F, sep="\t", row.names=F, col.names=F)
   
 }
-# save
+## save
 saveArchRProject(ArchRProj = E105_DM_Harmony, outputDirectory = "/path/to/ArchrOutputDir/E105_DM_Harmony", load = TRUE)
-
-# Plot a HeatMap of marker peaks
+## Plot heatmap of marker peaks
 heatmapPeaks <- plotMarkerHeatmap(
   seMarker = markersPeaks,
   cutOff = "FDR <= 0.01 & Log2FC >= 1",
@@ -65,7 +62,8 @@ heatmapPeaks <- plotMarkerHeatmap(
 ) 
 ComplexHeatmap::draw(heatmapPeaks, heatmap_legend_side = "bot", annotation_legend_side = "bot")
 
-### Step2; Identification of differential accessible regions (DARs) between conditions and motif enrichment analysis in the detected DARs
+
+### identification of differential accessible regions (DARs) between conditions and motif enrichment analysis in the detected DARs ####
 E105_DM_Harmony2 <- addMotifAnnotations(ArchRProj = E105_DM_Harmony2, motifSet = "homer", name = "Motif", force = T)
 celltype <- unique(E105_DM_Harmony2$Clusters)
 for (i in celltype) {print(i)}
@@ -82,8 +80,7 @@ for (i in celltype) {
   pma <- plotMarkers(seMarker = markerTest, name = paste0(i,"_STZ"), cutOff = "FDR <= 0.05 & abs(Log2FC) >= 1", plotAs = "MA")
   pv <- plotMarkers(seMarker = markerTest, name = paste0(i,"_STZ"), cutOff = "FDR <= 0.05 & abs(Log2FC) >= 1", plotAs = "Volcano")
   plotPDF(pma, pv, name = paste0(i,"_STZ-vs-Veh-DCA-MA-Volcano_Harmony"), width = 5, height = 5, ArchRProj = E105_DM_Harmony2, addDOC = FALSE)
-
-  # enriched motifs in more accessible in STZ
+  ## enriched motifs in more accessible in STZ
   motifsUp <- peakAnnoEnrichment(
     seMarker = markerTest,
     ArchRProj = E105_DM_Harmony2,
@@ -104,8 +101,7 @@ for (i in celltype) {
     ylab("-log10(FDR) Motif Enrichment") + 
     xlab("Rank Sorted TFs Enriched") +
     scale_color_gradientn(colors = paletteContinuous(set = "comet"))
-  
-  # enriched motifs in less accessible in STZ
+  ## enriched motifs in less accessible in STZ
   motifsDo <- peakAnnoEnrichment(
     seMarker = markerTest,
     ArchRProj = E105_DM_Harmony2,
@@ -131,7 +127,7 @@ for (i in celltype) {
 }
 saveArchRProject(ArchRProj = E105_DM_Harmony2, outputDirectory = "/path/to/ArchrOutputDir/E105_DM_Harmony2", load = TRUE)
 
-# store detected DARs
+## store detected DARs
 celltype <- c("C1", "C5", "C11", "C14", "C15", "C16", "C19", "C20","C22", "C23") #"C1", "C5", "C11"
 for (i in celltype) {
   markerTest <- getMarkerFeatures(
@@ -183,8 +179,7 @@ for (i in celltype) {
 }
 
 
-## Session Information
-sessionInfo()
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Catalina 10.15.7

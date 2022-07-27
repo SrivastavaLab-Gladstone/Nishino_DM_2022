@@ -1,21 +1,20 @@
-### Script01_Data import and initiate Seurat object with metadata
-
-### Import library
+### Script01: Create Seurat object and add metadata
+### Load libraries and data ####
 library(dplyr)
 library(Seurat)
 library(biomaRt)
-## define "marts"
+set.seed(7)
 human = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
 mouse = useMart("ensembl", dataset = "mmusculus_gene_ensembl")
 
-### load dataset - Tomo STZ+Vehicle E10.5 data (prespliced-mapped data)
+### load dataset - Tomo STZ+Vehicle E10.5 data (prespliced-mapped data) ####
 data.E105 <- Read10X(data.dir = "../data/filtered_feature_bc_matrix/") # this is your cellranger aggr output
 # Initialize the Seurat object with the raw (non-normalized data).
 E105 <- CreateSeuratObject(counts = data.E105, project = "E10.5_STZvVeh", min.cells = 3, min.features = 200)
 rm(data.E105)
 
-### Add metadata
-## annotate the aggregation csv and use that to add metadata.
+### Metadata ###
+## annotate the aggregation csv and use that to add metadata
 AggrSheet <- read.csv("../data/aggregation.csv") # this is your csv from cellranger-aggr
 AggrSheet$gem.group <- c("Veh01", 
                          "Veh02", 
@@ -52,23 +51,21 @@ rownames(metadata2add) <- metadata2add$rownames_for_metadata
 metadata2add$cellID <- NULL
 metadata2add$rownames_for_metadata <- NULL
 head(metadata2add)
-## AddMetaData
+
+## add all metadata
 E105 <- AddMetaData(E105, metadata = metadata2add)
 head(E105@meta.data)
-# chenge order
+# change order
 E105@meta.data$condition <- factor(E105@meta.data$condition, levels = c("Vehicle", "STZ"))
 levels(E105@meta.data$condition)
-
-### Add a bit more metadata, % features (mito, ribo)
-# calc % mt
+## % mt
 E105[["percent.mt"]] <- PercentageFeatureSet(E105, pattern = "^mt-")
-# calc % ribo
+## % ribo
 E105[["percent.ribo"]] <- PercentageFeatureSet(E105, pattern = "^Rp[sl]")
-# cell cycle scoring
-### Assign cell cycle scores
+## cell cycle scoring
 ## cc gene list via Seurat tutorial: https://www.dropbox.com/s/dl/3dby3bjsaf5arrw/cell_cycle_vignette_files.zip
 cc.genes <- readLines(con = "../data/regev_lab_cell_cycle_genes.txt")
-## convert Human to Mouse
+## convert Human to Mouse gene symbols
 cc.genes <- convertHumanGeneList(cc.genes)
 convertedCCgenes = getLDS(attributes = c("hgnc_symbol"), 
                           filters = "hgnc_symbol", 
@@ -78,19 +75,17 @@ convertedCCgenes = getLDS(attributes = c("hgnc_symbol"),
                           martL = mouse,
                           uniqueRows=T)
 convertedCCgenes <- unique(convertedCCgenes[, 2])
-
-## segregate this list into markers of G2/M phase and markers of S phase
+## split list into markers of G2/M phase and markers of S phase
 s.genes <- cc.genes[1:45]
 g2m.genes <- cc.genes[46:100]
 ## assign cell cycle scores
 E105 <- CellCycleScoring(E105, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
 head(E105@meta.data)
-
-### Save data
+## save data
 saveRDS(E105, file = "../data/rds/01_rawObject_noFilters_scoresAdded_06-28-2021.RDS")
 
 
-
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Big Sur 11.6.6

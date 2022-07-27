@@ -1,11 +1,13 @@
+### Script01: prepare ArchR project
+### Load libraries and data ####
 library(ArchR)
 library(dplyr)
 library(SeuratWrappers)
 addArchRThreads(threads = 24) 
 set.seed(1)
-# ArchR : Version 1.0.1
 
-## Import data
+
+### Import data ####
 inputFiles <- c("./E105fragments/Vehicle01_fragments.tsv.gz",
                 "./E105fragments/Vehicle02_fragments.tsv.gz",
                 "./E105fragments/Vehicle03_fragments.tsv.gz",
@@ -14,11 +16,9 @@ inputFiles <- c("./E105fragments/Vehicle01_fragments.tsv.gz",
                 "./E105fragments/STZ03_fragments.tsv.gz")
 names(inputFiles) <- c("Veh01", "Veh02", "Veh03", "STZ01", "STZ02", "STZ03")
 inputFiles
-
 ## add reference
 addArchRGenome("mm10")
-
-## Create Arrow Files (with modifications)
+## create arrrow files (with modifications)
 starttime <- Sys.time()
 ArrowFiles <- createArrowFiles(
   inputFiles = inputFiles,
@@ -31,7 +31,7 @@ ArrowFiles <- createArrowFiles(
 )
 ArrowFiles
 
-## Inferring Doublets
+## infer doubelts
 doubScores <- addDoubletScores(
   input = ArrowFiles,
   k = 10, 
@@ -39,8 +39,7 @@ doubScores <- addDoubletScores(
   LSIMethod = 1
 )
 
-## Creating an ArchRProject
-# Create 'ArchRProject' with Arrow files in hand
+## create ArchR project
 E105_DM <- ArchRProject(
   ArrowFiles = ArrowFiles, 
   outputDirectory = "E105_DM",
@@ -48,19 +47,18 @@ E105_DM <- ArchRProject(
 )
 E105_DM
 
-# save ArchRProject
+## save ArchRProject
 saveArchRProject(ArchRProj = E105_DM, outputDirectory = "/path/to/ArchrOutputDir/E105_DM", load = TRUE)
 
-### close R studio, delete fragments files and the initial arrow files, reload project
+
+### restart R, delete fragments files & the initial arrow files, and reload your project ####
 library(ArchR)
 library(dplyr)
 library(SeuratWrappers)
 addArchRThreads(threads = 24) 
 set.seed(1)
-# ArchR : Version 1.0.1
 E105_DM <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM")
-
-### Plot QC matrix for the ArchRProject
+## Plot QC matrix for the ArchRProject
 df <- getCellColData(E105_DM, select = c("log10(nFrags)", "TSSEnrichment"))
 df
 p<- ggPoint(x=df[,1], y=df[,2], colorDensity = TRUE, continuousSet = "sambaNight",
@@ -71,22 +69,22 @@ p<- ggPoint(x=df[,1], y=df[,2], colorDensity = TRUE, continuousSet = "sambaNight
   geom_vline(xintercept = 4.3, lty="dashed")
 p 
 plotPDF(p, name = "TSS-vs-Frags.pdf", ArchRProj = E105_DM, addDOC = FALSE)
-# I might be able to tighten thresholds, like minTSS=8.2, Log10Fragment=4.35
 
-## Plot Sample Statistics
-# Make a ridge plot for each sample for the TSS enrichment scores
+
+## plot sample statistics ####
+## TSS score ridge plot
 p1 <- plotGroups(ArchRProj=E105_DM, groupBy="Sample", colorBy="cellColData",
                  name="TSSEnrichment", plotAs="ridges")
 p1
-# Make a violin plot for each sample for the TSS enrichment scores.
+## TSS score violin plot
 p2 <- plotGroups(ArchRProj=E105_DM, groupBy="Sample", colorBy="cellColData",
                  name="TSSEnrichment", plotAs="violin", alpha=0.4, addBoxPlot=TRUE)
 p2
-# Make a ridge plot for each sample for the log10(unique nuclear fragments)
+## log10(unique nuclear fragments) ridge plot
 p3 <- plotGroups(ArchRProj=E105_DM, groupBy="Sample", colorBy="cellColData",
                  name="log10(nFrags)", plotAs="ridges")
 p3
-# Make a violin plot for each sample for the log10(unique nuclear fragments)
+## log10(unique nuclear fragments) violin plot
 p4 <- plotGroups(ArchRProj=E105_DM, groupBy="Sample", colorBy="cellColData",
                  name="log10(nFrags)", plotAs="violin", alpha=0.4, addBoxPlot=TRUE)
 p4
@@ -94,47 +92,42 @@ p4
 plotPDF(p1,p2,p3,p4, name = "QC-Sample-Statistics.pdf", ArchRProj = E105_DM, addDOC = FALSE, width = 4, height = 4)
 rm(p, p1,p2,p3,p4)
 
-## Plot Sample Ftagment Size Distribution and TSS Enrichment Profiles
-# Fragment size distributions
+## plot sample fragment size distribution and TSS enrichment profiles
+## fragment size distributions
 p1 <- plotFragmentSizes(ArchRProj = E105_DM)
 p1
-# TSS enrichment profiles
+## TSS enrichment profiles
 p2 <- plotTSSEnrichment(ArchRProj = E105_DM)
 p2
-
 plotPDF(p1,p2, name = "QC-Sample-FragSizes-TSSProfile.pdf", ArchRProj = E105_DM, addDOC = FALSE, width = 5, height = 5)
 rm(p1,p2)
 
-# Save
+## save
 saveArchRProject(ArchRProj = E105_DM, outputDirectory = "/path/to/ArchrOutputDir/E105_DM", load = TRUE)
 
 
-##### 2. Clustering (with batch correction)
+### Clustering (with batch correction) ####
+## restart R and reload your project
 library(ArchR)
 library(dplyr)
 library(SeuratWrappers)
+library(pheatmap)
 addArchRThreads(threads = 24)
 set.seed(1)
-# ArchR : Version 1.0.1
-
-### Re-load ArchR project!
 E105_DM <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM")
-
 E105_DM_Harmony <- filterDoublets(ArchRProj = E105_DM)
 E105_DM_Harmony
 rm(E105_DM)
-
 E105_DM_Harmony <- addIterativeLSI(ArchRProj = E105_DM_Harmony, useMatrix = "TileMatrix", name = "IterativeLSI",
                                    iterations = 2, clusterParams = list(resolution=c(2), sampleCells=10000, maxClusters = 6, n.start=10),
                                    varFeatures = 25000, dimsToUse = 1:30 , LSIMethod = 2, seed = 1, force = TRUE)
-# Adding harmony batch correction
+## add harmony batch correction
 E105_DM_Harmony <- addHarmony(ArchRProj = E105_DM_Harmony, reducedDims = "IterativeLSI", name = "Harmony", groupBy = "Sample")
 E105_DM_Harmony <- addClusters(input = E105_DM_Harmony, reducedDims = "Harmony", method = "Seurat",
                        name = "Clusters", resolution = 1, force = TRUE, maxClusters = 25)
 table(E105_DM_Harmony$Clusters)
 cM <- confusionMatrix(paste0(E105_DM_Harmony$Clusters), paste0(E105_DM_Harmony$Sample))
 cM
-library(pheatmap)
 cM <- cM / Matrix::rowSums(cM)
 p <- pheatmap::pheatmap(
   mat = as.matrix(cM), 
@@ -144,48 +137,45 @@ p <- pheatmap::pheatmap(
 p
 plotPDF(p, name = "Plot-ConfusionMatrix-Heatmap_Harmony.pdf", ArchRProj = E105_DM_Harmony, addDOC = FALSE, width = 5, height = 5)
 
-### Visualizing in a 2D UMAP Embedding
+## visualize 2D UMAP embedding
 E105_DM_Harmony <- addUMAP(ArchRProj = E105_DM_Harmony, reducedDims = "Harmony", name = "UMAP",
                    nNeighbors = 40, minDist = 0.4, metric = "cosine" , force = TRUE)
-# colored by “Sample”:
+## UMAP colored by “Sample”:
 p1 <- plotEmbedding(ArchRProj = E105_DM_Harmony, colorBy = "cellColData", name = "Sample", embedding = "UMAP")
-# colored by “Clusters”:
+## UMAP colored by “Clusters”:
 p2 <- plotEmbedding(ArchRProj = E105_DM_Harmony, colorBy = "cellColData", name = "Clusters", embedding = "UMAP")
 ggAlignPlots(p1, p2, type = "h")
-# Save 
+## save plots 
 plotPDF(p1,p2, name = "Plot-UMAP-Sample-Clusters_Harmony.pdf",
         ArchRProj = E105_DM_Harmony, addDOC = FALSE, width = 5, height = 5)
-# Save the project
+## save the project
 saveArchRProject(ArchRProj = E105_DM_Harmony, outputDirectory = "/path/to/ArchrOutputDir/E105_DM_Harmony", load = TRUE)
 
-####################################################
-## Proceed to 3. scRNA-seq integration and cluster ID using non-batch corrected clustering
 
-#### cluster identification
+
+### scRNA-seq integration and cluster ID using non-batch corrected clustering ####
+## restart R and reload your project
 library(ArchR)
 library(dplyr)
 library(SeuratWrappers)
 addArchRThreads(threads = 24) 
 set.seed(1)
-# ArchR : Version 1.0.1
-
-### Re-load ArchR project
 E105_DM_Harmony <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Harmony")
 
-## Identifying Marker Genes
-# To identify marker genes based on gene scores, we call the getMarkerFeatures() function with useMatrix = "GeneScoreMatrix"
+### cluster identification ####
+## identifying Marker Genes
+## to identify marker genes based on gene scores, we call the getMarkerFeatures() function with useMatrix = "GeneScoreMatrix"
 markersGS <- getMarkerFeatures(ArchRProj = E105_DM_Harmony, useMatrix = "GeneScoreMatrix", 
                                groupBy = "Clusters", bias = c("TSSEnrichment", "log10(nFrags)"),
                                testMethod = "wilcoxon", maxCells = 500)
-# Extract the marker genes we got from the above step. You can access to each cluster data using "$", like $C1.
+## extract the marker genes we got from the above step. You can access to each cluster data using "$", like $C1.
 markerList <- getMarkers(markersGS, cutOff = "FDR <= 0.05 & Log2FC >= 1.25")
 numv <- length(markerList@listData)
 for (i in 1:numv) {
   foundmarkers <- markerList@listData[i]
   write.csv(foundmarkers, file = paste0("./E105_DM_Harmony/MarkerGS/C", i, "_MarkerGS.csv"))
 }
-
-# Plot a Heatmap of makerGS with some labels of marker genes
+## plot heatmap of makerGS with some labels of marker genes
 markerGenes <- c("Hoxb1", "Osr1", "Tbx5", "Fgf8", "Isl1", "Mef2c", "Dlx5", "Twist1", "Barx1","Foxd1","Sox2","Tlx1",
                  "Tbx18", "Wt1", "Tcf21", "Irx4", "Myh7", "Rgs5", "Tnnt2", "Rspo3", "Emcn", "Pecam1","Alx3","Gata4",
                  "Epcam", "Bmp2", "Tbx20", "Ttn", "Foxa2", "Foxi2", "Sox10","Sox7", "Kdr", "Gsta1", "Hand2","Gata6",
@@ -197,7 +187,7 @@ heatmapGS <- plotMarkerHeatmap(seMarker = markersGS, cutOff = "FDR <= 0.05 & Log
 ComplexHeatmap::draw(heatmapGS, heatmap_legend_side = "bot", annotation_legend_side = "bot")
 plotPDF(heatmapGS, name = "GeneScores-Marker-Heatmap", width = 8, height = 6, ArchRProj = E105_DM_Harmony, addDOC = FALSE)
 
-# Visualizing marker genes on an UMAP embedding
+## visualize marker genes on an UMAP embedding
 p <- plotEmbedding(ArchRProj = E105_DM_Harmony, colorBy = "GeneScoreMatrix", name = markerGenes, 
                    embedding = "UMAP",quantCut = c(0.01, 0.95),imputeWeights = NULL)
 p2 <- lapply(p, function(x){
@@ -209,8 +199,9 @@ do.call(cowplot::plot_grid, c(list(ncol = 3),p2))
 plotPDF(plotList = p, name = "Plot-UMAP-Marker-Genes-WO-Imputation.pdf", 
         ArchRProj = E105_DM_Harmony, addDOC = FALSE, width = 5, height = 5)
 
-# Marker Genes Imuputation with MAGIC
-# We can use MAGIC to impute gene scores by smoothing signal across nearby cells. 
+
+### marker gene imuputation with MAGIC ####
+## We can use MAGIC to impute gene scores by smoothing signal across nearby cells. 
 # this greatly improves the visual interpretation of gene scores.
 E105_DM_Harmony <- addImputeWeights(E105_DM_Harmony)
 p <- plotEmbedding(ArchRProj = E105_DM_Harmony, colorBy = "GeneScoreMatrix", name = markerGenes, 
@@ -224,12 +215,12 @@ do.call(cowplot::plot_grid, c(list(ncol = 3),p2))
 plotPDF(plotList = p, name = "Plot-UMAP-Marker-Genes-W-Imputation.pdf", 
         ArchRProj = E105_DM_Harmony, addDOC = FALSE, width = 5, height = 5)
 rm(p, p2)
-
-# Save
+## save
 saveArchRProject(ArchRProj = E105_DM_Harmony, outputDirectory = "/path/to/ArchrOutputDir/E105_DM_Harmony", load = TRUE)
 
-### Maker Peaks
-# peak calls using "Cluster" 
+
+### maker peaks ####
+## peak calls using "Cluster" 
 E105_DM_Harmony <- addGroupCoverages(ArchRProj = E105_DM_Harmony, groupBy = "Clusters", minCells = 40, maxCells = 500, force = T)
 E105_DM_Harmony <- addReproduciblePeakSet(ArchRProj = E105_DM_Harmony, groupBy = "Clusters", pathToMacs2 = "/usr/local/bin/macs2",
                                           peaksPerCell = 500, maxPeaks = 150000, minCells = 25, force = T)
@@ -279,8 +270,8 @@ for (i in numv) {
 }
 saveArchRProject(ArchRProj = E105_DM_Harmony, outputDirectory = "/path/to/ArchrOutputDir/E105_DM_Harmony", load = TRUE)
 
-## Motif Enrichment in Marker Peaks (HEATMAPS)
-# Based on Cluster
+### motif enrichment in marker peaks (heatmaps) ####
+## based on Cluster
 plotEmbedding(ArchRProj = E105_DM_Harmony, colorBy = "cellColData", name = "Clusters", embedding = "UMAP")
 table(E105_DM_Harmony$Clusters)
 markersPeaks <- getMarkerFeatures(ArchRProj = E105_DM_Harmony,
@@ -300,8 +291,8 @@ heatmapEM <- plotEnrichHeatmap(enrichMotifs, n = 7, transpose = TRUE)
 ComplexHeatmap::draw(heatmapEM, heatmap_legend_side = "bot", annotation_legend_side = "bot")
 plotPDF(heatmapEM, name = "Motifs-Enriched-Marker-Heatmap_cisbp", width = 16, height = 8, ArchRProj = E105_DM_Harmony, addDOC = FALSE)
 
-## Motif Enrichment in Marker Peaks
-# Based on labels by "clusters + condition" stored in "Clusters_Cd"
+## motif enrichment in marker peaks cont'd
+## based on labels by "clusters + condition" stored in "Clusters_Cd"
 temp_cluster_names <- paste0(E105_DM_Harmony$Clusters,"_",substr(E105_DM_Harmony$Sample, 1,3))
 length(unique(temp_cluster_names))
 E105_DM_Harmony$Clusters_Cd <- temp_cluster_names
@@ -326,16 +317,11 @@ enrichMotifs
 heatmapEM <- plotEnrichHeatmap(enrichMotifs, n = 7, transpose = TRUE)
 ComplexHeatmap::draw(heatmapEM, heatmap_legend_side = "bot", annotation_legend_side = "bot")
 plotPDF(heatmapEM, name = "Motifs-Enriched-Marker-Heatmap_Cluster-condition_cisbp", width = 16, height = 10, ArchRProj = E105_DM_Harmony, addDOC = FALSE)
-
+## save
 saveArchRProject(ArchRProj = E105_DM_Harmony, outputDirectory = "/path/to/ArchrOutputDir/E105_DM_Harmony", load = TRUE)
-###########
-# stop here for now
-##########
 
 
-
-## Session Information
-sessionInfo()
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Catalina 10.15.7

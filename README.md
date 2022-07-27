@@ -18,6 +18,7 @@ Analysis order:
     - `scRNA-seq/scRNA_Script03.R`: Mesodermal cell subset analyses
     - `scRNA-seq/scRNA_Script04.R`: Neural-crest cell subset analyses
     - `scRNA-seq/scRNA_Script05.R`: WGCNA and related statistical analysis framework
+    - `scRNA-seq/scRNA_Script06.R`: PA2 & AHF2 Alx3+ subset analyses
 3. Analyze scATAC data with ArchR v1.0.1 using scripts 1-7 in `scATAC-seq/` folder
     - `scATAC-seq/scATAC_Script01.R`: scATAC data read-in, processing, and ArchR project creation
     - `scATAC-seq/scATAC_Script02.R`: Identification of differentially accessible regions between clusters + motif enrichment analsysis

@@ -1,39 +1,29 @@
-## --------------------------------------------------------------------------------------------------------------------------------------------------------------------
-options(stringsAsFactors = FALSE)
-
-## load librarires 
+### Script05: WGCNA and related stats
+### Load libraries and data ####
 library(Seurat)
 library(WGCNA)
 library(lmerTest)
 library(data.table)
 library(enrichR)
-
-## set up WGCNA output directory
+set.seed(7)
+options(stringsAsFactors = FALSE)
 setwd("/path/to/desired/project/src_folder/")
 WGCNAbasedir <- "path/to/results/WGCNA/"
 dir.create(WGCNAbasedir)
-
-## load Seurat object
 WGCNA_SeuratObj <- readRDS("path/to/SeuratObject.RDS")
-WGCNA_SeuratObj
-
 ## review loaded Seurat object
 # DimPlot(WGCNA_SeuratObj, label = TRUE)
 # DimPlot(WGCNA_SeuratObj, split.by = "gem.group")
 # table(WGCNA_SeuratObj@meta.data$gem.group)
 # table(Idents(WGCNA_SeuratObj))
-
-
-## -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-## save variable features determinaed via SCT
+## save variable features as determined via SCT
 varFeatures <- rownames(WGCNA_SeuratObj@assays$SCT@scale.data)
 levels(Idents(WGCNA_SeuratObj))
 WGCNA_SeuratObj_expData <- t(as.matrix(GetAssayData(WGCNA_SeuratObj)))
 WGCNA_SeuratObj_expData_sub <- WGCNA_SeuratObj_expData[,varFeatures] ## only use variable genes in analysis
 
 
-## -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-## Run WGCNA
+### Run WGCNA ####
 allowWGCNAThreads(nThreads = 12) ## (`nThreads = NULL` == automatically determined)
 
 net <- blockwiseModules(WGCNA_SeuratObj_expData_sub, power = 10,
@@ -54,7 +44,7 @@ saveRDS(net, file = paste(WGCNAbasedir, "RDSname.RDS", sep = ""))
 # table(net$colors)
 
 
-## -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+### Observe results ####
 ## Convert labels to colors for plotting
 mergedColors = net$colors
 ## Plot the dendrogram and the module colors underneath
@@ -65,19 +55,18 @@ plotDendroAndColors(net$dendrograms[[1]], mergedColors[net$blockGenes[[1]]],
                     addGuide = TRUE, 
                     guideHang = 0.05)
 
-
-## -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ## save module color:gene dictionary
 # levels(as.factor(mergedColors))
 colorinfo <- net$colors
 write.csv(colorinfo, paste(WGCNAbasedir, "gene2module_dict.csv"), sep = "")
 
 
-## -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-## add module scores for all WGCNA module of interest, e.g. turquoise and blue
+
+### Add module scores for WGCNA module(s) of interest ####
+## e.g. turquoise and blue
 ModuleGenes_turquoise <- colnames(WGCNA_SeuratObj_expData)[net$colors == "turquoise"]
 ModuleGenes_blue <- colnames(WGCNA_SeuratObj_expData)[net$colors == "blue"]
-## gene lists must be elements of a list of character vectors
+## gene modules must be elements of a list of character vectors
 ModuleScoreGenes <- list(ModuleGenes_turquoise, ModuleGenes_blue)
 names(ModuleScoreGenes) <- c("WGCNA_turquoise", "WGCNA_blue")
 ## add module scores
@@ -86,14 +75,13 @@ WGCNA_SeuratObj <- AddModuleScore(WGCNA_SeuratObj,
                                   name = names(ModuleScoreGenes))
 
 
-## -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-## GO analysis
-enrichrOut <- enrichr(ModuleGenes, databases = c("GO_Biological_Process_2021")) #, "GO_Molecular_Function_2021", "GO_Cellular_Component_2021"))
-plotEnrich(enrichrOut$GO_Biological_Process_2021, showTerms = 20, numChar = 40, y = "Count", orderBy = "P.value", title = "WGCNA Signature: GO_Biological_Process_2021")
+### GO analysis ####
+## select module genes however you like
+enrichrOut <- enrichr(ModuleScoreGenes[1], databases = c("GO_Biological_Process_2021")) #, "GO_Molecular_Function_2021", "GO_Cellular_Component_2021"))
+plotEnrich(enrichrOut$GO_Biological_Process_2021, showTerms = 20, numChar = 40, y = "Count", orderBy = "P.value", title = "WGCNA [color_or_name_goes_here] Signature: GO_Biological_Process_2021")
 
 
-## --------------------------------------------------------------------------------------------------------------------------------------------------------------------
-### LMERTEST
+### Stats - lmerTest ####
 ## pull metdata w/ module scores
 data4lmer <- WGCNA_SeuratObj@meta.data
 head(data4lmer)
@@ -118,7 +106,7 @@ print("###################################")
 
 
 
-### sessioninfo
+### sessioninfo ####
 # R version 4.0.5 (2021-03-31)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS 12.2

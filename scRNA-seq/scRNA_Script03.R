@@ -1,36 +1,31 @@
-### Script03_Analyses of Mesoderm-CM subset
-
-### load libraries and set seed
+### Script03: Analyses of Mesoderm-CM subset
+### Load libraries and data ####
 library(Seurat)
 library(ggplot2)
 library(gridExtra)
 library(stringr)
 library(dplyr)
 set.seed(7)
-
-### load RDS from Script02
 E105 <- readRDS(file ="../data/rds/02_entire_broad-labeled_6-28-2021.RDS")
 
-### Subset Mesoderm and CM cells
+### Subset to Mesoderm+CM cells & cluster ####
 Idents(E105) <- "SCT_snn_res.0.6"
 levels(Idents(E105))
 clusters2keep <- c(3,4,6,7,8,10,11,12,13,14,20,23)
 Meso <- subset(E105, idents = clusters2keep)
-
-### Run SCTransform to renormalize data
+## Run SCTransform to renormalize data
 Meso <- SCTransform(Meso, assay = "RNA", new.assay.name = "SCT", variable.features.n = 3000, variable.features.rv.th = 1.3, 
                     vars.to.regress = c("percent.mt", "S.Score", "G2M.Score"),return.only.var.genes = TRUE)
-### Run PCA
 Meso <- RunPCA(Meso, verbose = FALSE, npcs = 100)
-### Run Harmony
 Meso <- harmony::RunHarmony(Meso, group.by.vars = "gem.group", assay.use="SCT")
-### Elbowplot, just to check
-ElbowPlot(Meso, ndims = 50)
+# ElbowPlot(Meso, ndims = 50)
 dims <- 1:30
 Meso <- RunUMAP(Meso, reduction = "harmony", dims = dims)
 Meso <- FindNeighbors(Meso, reduction = "harmony", dims = dims)
 Meso <- FindClusters(Meso, resolution = c(0.6,1.4), random.seed = 7)
-### Plot UMAPs and other QC parameters
+
+
+### Evaluate clustering and observe Mesoderm compartments ####
 Idents(Meso) <- "SCT_snn_res.0.6"
 DimPlot(Meso, reduction = "umap", label = TRUE)
 DimPlot(Meso, reduction = "umap", split.by = "condition", label = TRUE)
@@ -46,15 +41,15 @@ VlnPlot(Meso, features = c("percent.mt"), pt.size = 0.1,ncol = 1)
 ### save RDS
 saveRDS(Meso, file = "../data/rds/Mesoderm_CM_Epi_R-cellcycle_unlabeled_06-29-2021.RDS")
 
-### Extract marker genes to do annotation
+
+### Find marker genes for cell type annotation & plot heatmaps ####
 Idents(Meso) <- "SCT_snn_res.0.6"
 allmarkers_1 <- FindAllMarkers(Meso, logfc.threshold = 0.5, only.pos = TRUE, min.pct = 0.5, return.thresh = 1e-20)
 Idents(Meso) <- "SCT_snn_res.1.4"
 allmarkers_2 <- FindAllMarkers(Meso, logfc.threshold = 0.5, only.pos = TRUE, min.pct = 0.5, return.thresh = 1e-20)
-
-### Plot UMAP
+## Plot UMAP
 DimPlot(Meso, label = TRUE) + NoLegend()
-### Extract maker genes and plot a heatmap
+## Extract maker genes and plot a heatmap
 allmarkers <- FindAllMarkers(Meso, logfc.threshold = 0.3, only.pos = TRUE, min.pct = 0.3, return.thresh = 1e-6)
 write.csv(allmarkers, file = "../results/cluster_markers/Meso_07-02-2021.csv")
 top5 <- allmarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_log2FC)
@@ -62,7 +57,8 @@ maxcells  <- min(table(Idents(Meso)))
 DoHeatmap(subset(Meso, downsample = maxcells), features = top5$gene, size = 4)+ 
   theme(axis.text.y = element_text(size = 12))
 
-### Differential gene expression analysis between conditions per each sub cell type
+
+### DEG analysis between conditions, per cluster ####
 identlist <- levels(Idents(Meso))
 print(identlist)
 numvec <- as.vector(1:length(identlist))
@@ -81,7 +77,7 @@ for(i in numvec) {
 
 
 
-
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Big Sur 11.6.6

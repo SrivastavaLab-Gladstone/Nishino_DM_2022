@@ -1,21 +1,19 @@
-#### Script03_Integration of scRNA-seq information
-
-### Integration of scRNA-seq data of corresponding samples
-## load libraries
+#### Script03; Integration of scRNA-seq data of corresponding samples to scATAC
+### Load libraries and data ####
 library(ArchR)
 library(dplyr)
 library(Seurat)
 library(SeuratWrappers)
+library(plyr)
+library(dplyr)
 addArchRThreads(threads = 27) 
 set.seed(1)
-
-## Re-load ArchR project!
 E105_DM_Harmony <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Harmony")
 E105_DM_Harmony_trial <- E105_DM_Harmony
 rm(E105_DM_Harmony)
 
-## Need: Prepare the scRNA-seq data with corresponding samples
-## Preprocess of scRNA-seq data before integration
+
+### Preprocess of scRNA-seq data before integration ####
 scRNA <- readRDS("./scRNA_data/02_entire_broad-labeled_08-04-2021.RDS")
 scRNA <- FindVariableFeatures(scRNA, assay = "SCT", nfeatures = 4000) 
 Idents(scRNA) <- "celltype01" 
@@ -25,8 +23,7 @@ table(scRNA@active.ident)
 seRNA <- as.SingleCellExperiment(scRNA, assay = "SCT")
 colnames(colData(seRNA))
 table(colData(seRNA)$clusters)
-
-####  Step1; Integration (Unconstrained Integration, without imputation) 
+##  integration (Unconstrained Integration, without imputation) 
 E105_DM_Harmony_trial <- addGeneIntegrationMatrix(
   ArchRProj = E105_DM_Harmony_trial,
   useMatrix = "GeneScoreMatrix",
@@ -51,16 +48,14 @@ p1 <- plotEmbedding(
   pal = pal)
 p1
 plotPDF(p1, name = "Plot-UMAP-RNA-Harmony_Low_Latest-Integration_imputation-F.pdf", ArchRProj = E105_DM_Harmony_trial, addDOC = FALSE, width = 5, height = 5)
-# Save
+## save
 saveArchRProject(ArchRProj = E105_DM_Harmony_trial, outputDirectory = "/path/to/ArchrOutputDir/E105_DM_Harmony_trial_Latest", load = TRUE)
-
-# ######## 
-# Re-load ArchR project!
+## Re-load ArchR project!
 E105_DM_Harmony_trial <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Harmony_trial_Latest")
-# ######## 
 
-## Step2; Annotate scATAC-seq clusters based on the scRNA-seq intergration.
-## 1) labeling with cell-type in "Clusters2"
+
+### annotate scATAC-seq clusters based on the scRNA-seq intergration ####
+## labeling with cell-type in "Clusters2"
 cM <- confusionMatrix(E105_DM_Harmony_trial$Clusters, E105_DM_Harmony_trial$predictedGroup)
 cM
 labelOld <- rownames(cM)
@@ -69,9 +64,7 @@ labelNew <- colnames(cM)[apply(cM, 1, which.max)]
 labelNew
 cbind(labelOld, labelNew)
 
-library(plyr)
-library(dplyr)
-## My manual labeling --> make sure this is a separate metadata column from existing clusters
+## manual labeling --> make sure this is a separate metadata column from existing clusters
 temp_cluster_names <- as.character(revalue(E105_DM_Harmony_trial$Clusters, c(
   "C10"="Mesoderm_CardiacProgenitor",          
   "C4"="Endothelium",            
@@ -111,6 +104,8 @@ plotPDF(p1,
         ArchRProj = E105_DM_Harmony_trial,
         addDOC = FALSE, width = , height = 5)
 
+
+### sessionfo ####
 #                            STZ01 STZ02 STZ03 Veh01 Veh02 Veh03
 # Blood                        155   256   240   368   330  1468
 # Cardiomyocyte                400   499   427   976  1078  1355

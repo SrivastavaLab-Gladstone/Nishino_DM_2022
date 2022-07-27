@@ -1,16 +1,14 @@
-#### Script06
-#### ChromVAR analysis
-
-## load libraries and set seed
+### Script06: ChromVAR analysis
+### Load libraries and data ####
 library(ArchR)
 library(dplyr)
 library(SeuratWrappers)
 addArchRThreads(threads = 26) 
 set.seed(1)
-
-## Re-load ArchR project!
 E105_DM_Harmony2 <- loadArchRProject(path = "/path/to/ArchrOutputDir/E105_DM_Harmony2")
 
+
+### Process data ####
 E105_DM_Harmony2 <- addBgdPeaks(E105_DM_Harmony2)
 E105_DM_Harmony2 <- addDeviationsMatrix(ArchRProj = E105_DM_Harmony2,
                                         peakAnnotation = "Motif",
@@ -19,7 +17,8 @@ plotVarDev <- getVarDeviations(E105_DM_Harmony2, name = "MotifMatrix", plot = TR
 plotVarDev
 plotPDF(plotVarDev, name = "Variable-Motif-Deviation-Scores", width = 5, height = 5, ArchRProj = E105_DM_Harmony2, addDOC = FALSE)
 
-# extract subset of motifs for downstream analysis
+
+### Extract subset of motifs for downstream analysis ####
 motifs <- c("Tr4", "Ppare", "Rxr")
 markerMotifs <- getFeatures(E105_DM_Harmony2, select = paste(motifs, collapse="|"), useMatrix = "MotifMatrix")
 markerMotifs <- grep("z:", markerMotifs, value = TRUE)
@@ -76,8 +75,7 @@ do.call(cowplot::plot_grid, c(list(ncol = 3),p2))
 plotPDF(p, name = "UMAP-Motief-Deviations", width = 5, height = 5, ArchRProj = E105_DM_Harmony2, addDOC = FALSE)
 
 
-## Session Information
-sessionInfo()
+### sessioninfo ####
 # R version 4.0.4 (2021-02-15)
 # Platform: x86_64-apple-darwin17.0 (64-bit)
 # Running under: macOS Catalina 10.15.7
